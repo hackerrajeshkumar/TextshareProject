@@ -21,7 +21,20 @@ const io = socketIo(server);
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(helmet()); // Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://cdnjs.cloudflare.com", "'unsafe-inline'"],
+      styleSrc: ["'self'", "https://cdnjs.cloudflare.com", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+      connectSrc: ["'self'", "wss:", "ws:"],
+      fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    }
+  }
+})); // Security headers
 app.use(compression()); // Compress responses
 app.use(cors()); // Enable CORS
 app.use(express.json({ limit: '1mb' })); // Parse JSON bodies with size limit
@@ -109,3 +122,4 @@ function updateLastActivity(textId) {
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
