@@ -5,6 +5,7 @@ const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
+const https = require('https');
 const socketIo = require('socket.io');
 const apiRoutes = require('./routes/api');
 
@@ -16,7 +17,13 @@ if (!fs.existsSync(dataDir)) {
 
 // Initialize express app
 const app = express();
-const server = http.createServer(app);
+
+// Create HTTP server (for redirect)
+const httpServer = http.createServer(app);
+
+// For production, use proper SSL certificates
+// For now, we'll use HTTP only
+const server = httpServer;
 const io = socketIo(server);
 const PORT = process.env.PORT || 3000;
 
@@ -25,7 +32,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "https://cdnjs.cloudflare.com", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
       styleSrc: ["'self'", "https://cdnjs.cloudflare.com", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:"],
       connectSrc: ["'self'", "wss:", "ws:"],
@@ -122,4 +129,5 @@ function updateLastActivity(textId) {
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
