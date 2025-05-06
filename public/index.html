@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ShareText - A lightweight, fast text sharing web application">
+  <title>ShareText - Share Text Instantly</title>
+
+  <!-- Favicon -->
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Highlight.js for syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+
+  <!-- QR Code library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+
+  <!-- Marked for Markdown parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+
+  <!-- Socket.io client -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="light-mode">
+  <div class="container">
+    <header>
+      <div class="logo">
+        <h1>ShareText</h1>
+        <p class="tagline">Share text instantly, securely</p>
+      </div>
+      <div class="theme-toggle">
+        <button id="theme-toggle-btn" aria-label="Toggle dark/light mode">
+          <i class="fas fa-moon"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Quick Access Bar -->
+    <div class="quick-access-bar">
+      <div class="code-display">
+        <div class="code-label">Your Code:</div>
+        <div class="code-value" id="code-display">----</div>
+        <button id="copy-code-btn" aria-label="Copy code">
+          <i class="fas fa-copy"></i>
+        </button>
+      </div>
+
+      <div class="code-input">
+        <input type="text" id="code-input" placeholder="Enter code to load" maxlength="4">
+        <button id="load-code-btn" class="secondary-btn">Load</button>
+      </div>
+
+      <div class="expiry-timer">
+        <i class="fas fa-clock"></i>
+        <span id="expiry-timer-display">--:--</span>
+      </div>
+    </div>
+
+    <main>
+      <div class="editor-container">
+        <div class="editor-wrapper">
+          <div class="editor-header">
+            <div class="syntax-selector">
+              <select id="syntax-select">
+                <option value="plain">Plain Text</option>
+                <option value="javascript">JavaScript</option>
+                <option value="python">Python</option>
+                <option value="html">HTML</option>
+                <option value="css">CSS</option>
+                <option value="json">JSON</option>
+                <option value="markdown">Markdown</option>
+              </select>
+            </div>
+            <div class="view-toggle">
+              <button id="preview-toggle" aria-label="Toggle preview">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="editor-content">
+            <div class="editor-pane active">
+              <textarea id="text-editor" placeholder="Type or paste your text here..."></textarea>
+            </div>
+            <div class="preview-pane">
+              <div id="preview-content"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="share-options">
+          <div class="share-url-container">
+            <input type="text" id="share-url" readonly>
+            <button id="copy-url-btn" aria-label="Copy share URL">
+              <i class="fas fa-copy"></i>
+            </button>
+            <button id="qr-code-btn" aria-label="Generate QR code">
+              <i class="fas fa-qrcode"></i>
+            </button>
+          </div>
+
+          <div class="secure-options">
+            <div class="secure-toggle">
+              <label class="switch">
+                <input type="checkbox" id="secure-toggle">
+                <span class="slider round"></span>
+              </label>
+              <span>Secure Share</span>
+            </div>
+
+            <div class="secure-settings" style="display: none;">
+              <div class="password-container">
+                <input type="password" id="password-input" placeholder="Password (optional)">
+                <div class="password-strength">
+                  <div class="strength-bar"></div>
+                </div>
+              </div>
+
+              <div class="expiry-container">
+                <select id="expiry-select">
+                  <option value="10m">10 minutes</option>
+                  <option value="24h">24 hours</option>
+                  <option value="7d">7 days</option>
+                  <option value="30d">30 days</option>
+                  <option value="never">Never expire</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <button id="save-btn" class="primary-btn">
+            <i class="fas fa-save"></i> Save & Share
+          </button>
+        </div>
+      </div>
+
+      <div id="qr-modal" class="modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <h2>Share via QR Code</h2>
+          <div id="qr-code-container"></div>
+          <p>Scan this QR code to access the shared text</p>
+        </div>
+      </div>
+
+      <div id="password-modal" class="modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <h2>Password Protected</h2>
+          <p>This text is password protected. Please enter the password to view it.</p>
+          <input type="password" id="password-prompt" placeholder="Enter password">
+          <button id="submit-password" class="primary-btn">Submit</button>
+          <p id="password-error" class="error-message"></p>
+        </div>
+      </div>
+
+      <!-- Chat Panel -->
+      <div class="chat-panel" id="chat-panel">
+        <div class="chat-header">
+          <h3>Live Chat</h3>
+          <button id="toggle-chat-btn" aria-label="Toggle chat">
+            <i class="fas fa-chevron-down"></i>
+          </button>
+        </div>
+        <div class="chat-body">
+          <div class="chat-messages" id="chat-messages">
+            <div class="system-message">
+              <p>Share your code with others to start chatting.</p>
+            </div>
+          </div>
+          <div class="chat-input">
+            <input type="text" id="chat-message-input" placeholder="Type a message..." disabled>
+            <button id="send-message-btn" disabled>
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="encryption-notice">
+        <i class="fas fa-lock"></i> All texts are end-to-end encrypted
+      </div>
+      <div class="footer-links">
+        <a href="#about">About</a>
+        <a href="#privacy">Privacy Policy</a>
+        <a href="https://github.com/yourusername/sharetext" target="_blank">Open Source</a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="js/main.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/chat.js"></script>
+</body>
+</html>
